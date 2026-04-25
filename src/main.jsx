@@ -2,115 +2,176 @@ import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./styles.css";
 
-const constraintInfo = [
-  {
-    id: "cost",
-    label: "Cost",
-    icon: "cost",
-    help: "Fuel, driver, border delay, insurance, handling",
-  },
-  {
-    id: "leadTime",
-    label: "Lead time",
-    icon: "time",
-    help: "Dispatch speed, customs waiting, onward connection",
-  },
-  {
-    id: "compliance",
-    label: "Compliance",
-    icon: "check",
-    help: "Customs documents, permits, GCC/Saudi requirements, international standards",
-  },
-  {
-    id: "safety",
-    label: "Safety",
-    icon: "shield",
-    help: "Driver fatigue, road conditions, vehicle readiness, cargo security",
-  },
-  {
-    id: "technology",
-    label: "Technology/V2X",
-    icon: "signal",
-    help: "Fleet visibility, alerts, connected vehicle support, monitoring",
-  },
-  {
-    id: "coldChain",
-    label: "Cold-chain integrity",
-    icon: "cold",
-    help: "Temperature control, delay risk, pharma product safety",
-  },
+const deliveryRequirementDays = 40;
+
+const riskFocusItems = [
+  { id: "cost", label: "Cost" },
+  { id: "leadTime", label: "Lead Time" },
+  { id: "compliance", label: "Compliance" },
+  { id: "safety", label: "Safety" },
+  { id: "technology", label: "Technology" },
 ];
 
-const risks = [
-  "Missing or incomplete documentation",
-  "Border delay at King Fahd Causeway",
-  "Temperature excursion",
-  "Driver fatigue / road safety risk",
-  "High cost due to delays or rerouting",
-  "Poor shipment visibility",
-  "Missed onward global connection to Rotterdam",
-];
-
-const strategies = {
-  fastest: {
-    label: "Fastest Route",
-    explanation:
-      "Prioritises dispatch speed and quick handover to onward transport, but can expose the shipment to documentation, fatigue, and temperature risks if controls are weak.",
+const routeOptions = {
+  sea: {
+    id: "sea",
+    option: "Option A",
+    name: "Cost-Efficient Road + Sea Plan",
+    resultLabel: "Option A: Cost-Efficient Road + Sea Plan",
+    modeLabel: "Road freight + sea connector + road final-mile",
+    cost: "BHD 3,500",
+    costValue: 3500,
+    totalLeadTime: "27-37 days",
+    minLeadDays: 27,
+    maxLeadDays: 37,
+    costTone: "Lower cost",
+    timeTone: "Longer lead time",
+    requirementStatus: "Meets 40-day delivery requirement",
+    focusPoints:
+      "Port coordination, cold chain continuity, customs/border planning, longer transit exposure, and visibility across a longer route.",
+    legs: [
+      {
+        title: "Road leg 1",
+        context: "Local and regional road freight",
+        from: "Local Bahraini logistics provider",
+        to: "Dammam Port",
+        mode: "Road freight",
+        type: "road",
+        note: "Main road freight planning stage",
+      },
+      {
+        title: "Sea leg",
+        context: "International connector",
+        from: "Dammam Port",
+        to: "Port of Rotterdam",
+        mode: "Sea freight",
+        type: "sea",
+        note: "Connector mode supported by road freight",
+      },
+      {
+        title: "Road leg 2",
+        context: "Global last-mile road freight",
+        from: "Port of Rotterdam",
+        to: "Cobeco Pharma Wholesale BV",
+        mode: "Road freight",
+        type: "road",
+        note: "Final delivery reliability stage",
+      },
+    ],
   },
-  lowestCost: {
-    label: "Lowest Cost",
-    explanation:
-      "Minimises direct transport spend, but may under-resource monitoring, contingency buffers, or premium handling for a pharmaceutical cold chain.",
-  },
-  highestCompliance: {
-    label: "Highest Compliance",
-    explanation:
-      "Prioritises documents, permits, Saudi/GCC requirements, and international standards, accepting extra preparation time to reduce clearance and audit risk.",
-  },
-  safest: {
-    label: "Safest Route",
-    explanation:
-      "Prioritises driver readiness, vehicle condition, cargo security, and temperature protection, with possible cost and lead-time trade-offs.",
-  },
-  balanced: {
-    label: "Balanced Strategy",
-    explanation:
-      "Prioritises compliance, cold-chain integrity, and reliable lead time rather than focusing only on speed or cost.",
+  air: {
+    id: "air",
+    option: "Option B",
+    name: "Time-Critical Road + Air Plan",
+    resultLabel: "Option B: Time-Critical Road + Air Plan",
+    modeLabel: "Road freight + air connector + road final-mile",
+    cost: "BHD 10,000",
+    costValue: 10000,
+    totalLeadTime: "3-5 days",
+    minLeadDays: 3,
+    maxLeadDays: 5,
+    costTone: "Higher cost",
+    timeTone: "Shorter lead time",
+    requirementStatus: "Meets 40-day delivery requirement",
+    focusPoints:
+      "Fast handover, delivery reliability, shorter transit exposure, airport handling, and higher transport cost.",
+    legs: [
+      {
+        title: "Road leg 1",
+        context: "Local and regional road freight",
+        from: "Local Bahraini logistics provider",
+        to: "Riyadh logistics hub / airport",
+        mode: "Road freight",
+        type: "road",
+        note: "Main road freight planning stage",
+      },
+      {
+        title: "Air leg",
+        context: "International connector",
+        from: "Riyadh",
+        to: "Rotterdam Airport or Amsterdam Schiphol",
+        mode: "Air freight",
+        type: "air",
+        note: "Connector mode supported by road freight",
+      },
+      {
+        title: "Road leg 2",
+        context: "Global last-mile road freight",
+        from: "Rotterdam Airport / Amsterdam Schiphol",
+        to: "Cobeco Pharma Wholesale BV",
+        mode: "Road freight",
+        type: "road",
+        note: "Final delivery reliability stage",
+      },
+    ],
   },
 };
 
-const routeStages = [
+const comparisonFacts = [
+  "Option A is cheaper by BHD 6,500, equal to 65% lower cost than Option B.",
+  "Option B is faster by 24-32 days.",
+  "Both routes meet the 40-day delivery requirement.",
+];
+
+const roadMovementStages = [
   {
-    marker: "A",
-    title: "Local",
-    heading: "Manama dispatch and Bahrain documentation",
-    detail: "Validate pharma paperwork, vehicle readiness, temperature set point, and handover records before departure.",
+    label: "Local road freight",
+    detail: "Local Bahraini logistics provider to gateway",
+    roadFocus: true,
   },
   {
-    marker: "B",
-    title: "Regional",
-    heading: "King Fahd Causeway and Riyadh road freight movement",
-    detail: "Manage border crossing risk, Saudi compliance, driver hours, road safety, and live shipment visibility.",
+    label: "Regional road freight",
+    detail: "Bahrain to Dammam Port or Bahrain to Riyadh airport/logistics hub",
+    roadFocus: true,
   },
   {
-    marker: "C",
-    title: "Global",
-    heading: "Onward distribution planning to Rotterdam",
-    detail: "Prepare reliable connection planning, export readiness, cold-chain continuity, and international service evidence.",
+    label: "International connector",
+    detail: "Sea or air movement between regional and European gateways",
+    roadFocus: false,
+  },
+  {
+    label: "Global last-mile road freight",
+    detail: "Rotterdam gateway/airport to Cobeco Pharma Wholesale BV",
+    roadFocus: true,
   },
 ];
 
-const defaultRatings = constraintInfo.reduce((acc, item) => {
-  acc[item.id] = 3;
-  return acc;
-}, {});
+const strategyText = {
+  cost: {
+    title: "Cost-Efficiency Strategy",
+    explanation:
+      "You selected a Cost-Efficiency Strategy. This means your road freight plan prioritises reducing total transport cost while managing longer lead time, compliance checks, and cold chain visibility across the route.",
+  },
+  leadTime: {
+    title: "Time-Critical Delivery Strategy",
+    explanation:
+      "You selected a Time-Critical Delivery Strategy. This means your road freight plan prioritises faster movement and shorter transit exposure, while managing higher cost, fast handovers, and airport-related compliance requirements.",
+  },
+  compliance: {
+    title: "Compliance-Control Strategy",
+    explanation:
+      "You selected a Compliance-Control Strategy. This means your road freight plan prioritises customs requirements, pharmaceutical handling standards, cold chain documentation, and controlled handovers across local, regional, and global stages.",
+  },
+  safety: {
+    title: "Safety-Focused Strategy",
+    explanation:
+      "You selected a Safety-Focused Strategy. This means your road freight plan prioritises product safety, secure handling, temperature protection, safe loading/unloading, and reducing damage or exposure risk.",
+  },
+  technology: {
+    title: "Technology-Enabled Visibility Strategy",
+    explanation:
+      "You selected a Technology-Enabled Visibility Strategy. This means your road freight plan prioritises real-time tracking, temperature monitoring, digital documentation, and visibility across the first-mile, regional, and last-mile road freight stages.",
+  },
+};
+
+const disclaimer =
+  "Figures are simplified estimates for classroom decision-making and are used to compare trade-offs, not to represent live freight quotations.";
 
 const defaultState = {
-  started: false,
+  started: true,
   step: 1,
-  ratings: defaultRatings,
+  routeId: "",
   selectedRisks: [],
-  strategy: "",
 };
 
 function Icon({ type }) {
@@ -125,46 +186,6 @@ function Icon({ type }) {
   };
 
   const paths = {
-    cost: (
-      <>
-        <path d="M12 2v20" />
-        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H6" />
-      </>
-    ),
-    time: (
-      <>
-        <circle cx="12" cy="12" r="9" />
-        <path d="M12 7v5l3 2" />
-      </>
-    ),
-    check: (
-      <>
-        <path d="M9 12l2 2 4-5" />
-        <path d="M20 13c0 5-3.5 7.5-8 9-4.5-1.5-8-4-8-9V5l8-3 8 3v8Z" />
-      </>
-    ),
-    shield: (
-      <>
-        <path d="M12 22c4-1.2 8-4.5 8-10V5l-8-3-8 3v7c0 5.5 4 8.8 8 10Z" />
-        <path d="M9 12l2 2 4-5" />
-      </>
-    ),
-    signal: (
-      <>
-        <path d="M4 18.5a11 11 0 0 1 16 0" />
-        <path d="M7.5 15a6.5 6.5 0 0 1 9 0" />
-        <path d="M11 11.5a2 2 0 0 1 2 0" />
-        <path d="M12 20h.01" />
-      </>
-    ),
-    cold: (
-      <>
-        <path d="M12 2v20" />
-        <path d="M5 5l14 14" />
-        <path d="M19 5 5 19" />
-        <path d="M4 12h16" />
-      </>
-    ),
     road: (
       <>
         <path d="M6 20 10 4" />
@@ -194,109 +215,93 @@ function Icon({ type }) {
   );
 }
 
-function calculateResult(ratings, selectedRisks, strategy) {
-  const r = ratings;
-  let score = 52;
+function getDeliveryStatus(route) {
+  const meetsRequirement = route.maxLeadDays <= deliveryRequirementDays;
+  return {
+    meetsRequirement,
+    label: meetsRequirement ? "Meets requirement" : "Does not meet requirement",
+    detail: meetsRequirement
+      ? "Meets 40-day delivery requirement"
+      : "Does not meet the 40-day delivery requirement. Students need to reconsider their plan.",
+  };
+}
 
-  score += (r.compliance - 3) * 5;
-  score += (r.coldChain - 3) * 5;
-  score += (r.safety - 3) * 4;
-  score += (r.leadTime - 3) * 3;
-  score += (r.technology - 3) * 2;
-  score += r.cost >= 3 ? 2 : -2;
+function getStrategy(route, rankedItems) {
+  const firstChoice = rankedItems[0] || "";
+  const strategy = strategyText[firstChoice] || {
+    title: "Road Freight Strategy",
+    explanation:
+      "Rank the top three freight risks or constraints to generate a road freight management strategy.",
+  };
 
-  const selectedSet = new Set(selectedRisks);
-  const highPriorityRisks = [
-    "Missing or incomplete documentation",
-    "Border delay at King Fahd Causeway",
-    "Temperature excursion",
-    "Driver fatigue / road safety risk",
-    "Missed onward global connection to Rotterdam",
-  ];
-
-  selectedRisks.forEach((risk, index) => {
-    if (highPriorityRisks.includes(risk)) score += 5 - index;
-    if (risk === "Poor shipment visibility" && r.technology >= 4) score += 2;
-    if (risk === "High cost due to delays or rerouting" && r.cost >= 4) score += 1;
-  });
-
-  if (strategy === "balanced") {
-    score += 12;
-    if (r.compliance >= 4 && r.coldChain >= 4 && r.safety >= 4) score += 8;
-    if (r.leadTime >= 4) score += 3;
+  let alignment = "Select and rank your focus areas to check route and strategy alignment.";
+  if (route?.id === "sea" && firstChoice === "cost") {
+    alignment = "The selected route and strategy are aligned: Option A is designed for cost-efficient road-supported movement.";
+  } else if (route?.id === "air" && firstChoice === "leadTime") {
+    alignment = "The selected route and strategy are aligned: Option B is designed for time-critical road-supported movement.";
+  } else if (route?.id === "sea" && firstChoice === "leadTime") {
+    alignment =
+      "There is a mismatch: you selected a cost-efficient route but prioritised time, so you may need to reconsider the route or manage lead-time risk carefully.";
+  } else if (route?.id === "air" && firstChoice === "cost") {
+    alignment =
+      "There is a mismatch: you selected a faster but more expensive route, so you need to justify the premium cost or reconsider the cost-efficient route.";
+  } else if (firstChoice === "compliance" || firstChoice === "safety" || firstChoice === "technology") {
+    alignment = getRouteSpecificFocus(route, firstChoice);
   }
 
-  if (strategy === "highestCompliance") {
-    score += 8;
-    if (selectedSet.has("Missing or incomplete documentation")) score += 5;
-    if (selectedSet.has("Border delay at King Fahd Causeway")) score += 4;
-    if (selectedSet.has("Temperature excursion")) score += 3;
-    if (r.compliance < 4) score -= 7;
+  return { ...strategy, alignment };
+}
+
+function getRouteSpecificFocus(route, focusId) {
+  const routeA = {
+    compliance:
+      "For Option A, compliance control should focus on customs, port handling, cold chain documentation, and pharmaceutical requirements.",
+    safety:
+      "For Option A, safety management should focus on longer exposure time, loading/unloading, and maintaining product condition.",
+    technology:
+      "For Option A, technology should support shipment visibility, temperature monitoring, and documentation tracking across the longer route.",
+  };
+  const routeB = {
+    compliance:
+      "For Option B, compliance control should focus on airport handling, customs checks, pharmaceutical documentation, and cold chain requirements.",
+    safety:
+      "For Option B, safety management should focus on fast handovers, loading/unloading, and secure movement of sensitive goods.",
+    technology:
+      "For Option B, technology should support real-time tracking, temperature monitoring, and coordination across road-air-road stages.",
+  };
+
+  return route?.id === "sea" ? routeA[focusId] : routeB[focusId];
+}
+
+function getRecommendation(route, rankedItems) {
+  const firstChoice = rankedItems[0] || "cost";
+  if (route?.id === "sea") {
+    const recommendations = {
+      cost: "Use the lower-cost plan with strong port coordination, clear cold-chain handover checks, and tracking across the longer movement.",
+      leadTime:
+        "Protect the 27-37 day lead time with early booking, port readiness checks, and escalation triggers before the 40-day limit is at risk.",
+      compliance:
+        "Prepare customs, port, and pharmaceutical cold-chain documents before dispatch from Bahrain.",
+      safety:
+        "Control loading, unloading, temperature exposure, and product security across each road and port transfer.",
+      technology:
+        "Use tracking, temperature logs, and digital documentation to keep visibility across the longer road-sea-road route.",
+    };
+    return recommendations[firstChoice];
   }
 
-  if (strategy === "fastest") {
-    score += r.leadTime >= 4 ? 6 : 1;
-    if (r.safety <= 3) score -= 8;
-    if (r.compliance <= 3) score -= 8;
-    if (r.coldChain <= 3) score -= 9;
-  }
-
-  if (strategy === "lowestCost") {
-    score += r.cost >= 4 ? 6 : 1;
-    if (r.coldChain < 4) score -= 10;
-    if (r.compliance < 4) score -= 10;
-    if (!selectedSet.has("High cost due to delays or rerouting")) score -= 2;
-  }
-
-  if (strategy === "safest") {
-    score += 7;
-    if (r.safety >= 4) score += 5;
-    if (r.coldChain >= 4) score += 4;
-    if (r.cost <= 2 || r.leadTime <= 2) score -= 2;
-  }
-
-  score -= Math.max(0, 3 - selectedRisks.length) * 8;
-  score = Math.max(0, Math.min(100, Math.round(score)));
-
-  let feedback =
-    "Your decision recognises that pharmaceutical road freight depends on more than movement speed. The strongest strategies protect clearance readiness, temperature control, road safety, and reliable onward connection planning.";
-
-  let improvement =
-    "Add a contingency plan for border waiting time, including active temperature monitoring and a documented escalation contact.";
-
-  if (strategy === "fastest") {
-    feedback =
-      "A speed-led plan can help protect the onward Rotterdam connection, but it must not weaken documentation checks, driver safety, or cold-chain controls.";
-    improvement =
-      "Build a pre-clearance checklist and driver rest plan before choosing the fastest movement window.";
-  } else if (strategy === "lowestCost") {
-    feedback =
-      "A cost-led plan can be commercially attractive, but pharmaceuticals need evidence that savings do not compromise compliance or temperature integrity.";
-    improvement =
-      "Identify which cost reductions are acceptable and ring-fence budget for monitoring, insurance, and compliant handling.";
-  } else if (strategy === "highestCompliance") {
-    feedback =
-      "A compliance-led plan fits the cross-border and global distribution context well, especially when documentation and border risk are treated as primary constraints.";
-    improvement =
-      "Pair compliance preparation with a lead-time buffer so the shipment still protects the onward Rotterdam connection.";
-  } else if (strategy === "safest") {
-    feedback =
-      "A safety-led plan is strong for pharma cargo because vehicle readiness, driver risk, security, and temperature protection all affect service quality.";
-    improvement =
-      "Make the cost and time impact explicit so managers can defend the safer route as a professional trade-off.";
-  } else if (strategy === "balanced") {
-    feedback =
-      "A balanced plan is well suited to this scenario because it weighs compliance, cold-chain integrity, safety, and lead-time reliability together.";
-    improvement =
-      "State the trigger points for escalation, such as border delay duration, temperature alert threshold, and missed connection risk.";
-  }
-
-  if (score < 60) {
-    improvement =
-      "Revisit the ratings and make sure compliance, cold-chain integrity, safety, and lead-time reliability are treated as core controls, not optional extras.";
-  }
-
-  return { score, feedback, improvement };
+  const recommendations = {
+    cost: "Justify the BHD 10,000 premium by linking it to urgency, delivery reliability, and reduced cold-chain exposure.",
+    leadTime:
+      "Coordinate road pickup, Riyadh handover, airport processing, and final-mile delivery so the 3-5 day route remains reliable.",
+    compliance:
+      "Prepare road, airport, customs, and pharmaceutical handling documents before the shipment reaches Riyadh.",
+    safety:
+      "Control fast handovers, secure loading, and temperature protection across the road-air-road movement.",
+    technology:
+      "Use real-time tracking and temperature monitoring to coordinate the road legs with the airport connector.",
+  };
+  return recommendations[firstChoice];
 }
 
 function App() {
@@ -304,7 +309,11 @@ function App() {
     const saved = localStorage.getItem("roadFreightDecisionLab");
     if (!saved) return defaultState;
     try {
-      return { ...defaultState, ...JSON.parse(saved) };
+      const parsed = JSON.parse(saved);
+      const selectedRisks = (parsed.selectedRisks || []).filter((item) =>
+        riskFocusItems.some((risk) => risk.id === item)
+      );
+      return { ...defaultState, ...parsed, started: true, selectedRisks };
     } catch {
       return defaultState;
     }
@@ -315,9 +324,14 @@ function App() {
     localStorage.setItem("roadFreightDecisionLab", JSON.stringify(activity));
   }, [activity]);
 
-  const result = useMemo(
-    () => calculateResult(activity.ratings, activity.selectedRisks, activity.strategy),
-    [activity.ratings, activity.selectedRisks, activity.strategy]
+  const selectedRoute = routeOptions[activity.routeId] || null;
+  const strategy = useMemo(
+    () => getStrategy(selectedRoute, activity.selectedRisks),
+    [selectedRoute, activity.selectedRisks]
+  );
+  const recommendation = useMemo(
+    () => getRecommendation(selectedRoute, activity.selectedRisks),
+    [selectedRoute, activity.selectedRisks]
   );
 
   const updateActivity = (updates) => {
@@ -332,17 +346,26 @@ function App() {
 
   const restart = () => {
     setCopyStatus("");
-    setActivity({ ...defaultState, ratings: { ...defaultRatings }, selectedRisks: [] });
+    setActivity({ ...defaultState, routeId: "", selectedRisks: [] });
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const summary = [
-    "Road Freight Decision Lab Result",
-    `Score: ${result.score}/100`,
-    `Strategy: ${strategies[activity.strategy]?.label || "Not selected"}`,
-    `Top risks: ${activity.selectedRisks.join("; ") || "Not selected"}`,
-    `Feedback: ${result.feedback}`,
-    `Suggested improvement: ${result.improvement}`,
+    "Road Freight Route Management Simulator Result",
+    `Selected route plan: ${selectedRoute?.resultLabel || "Not selected"}`,
+    `Total estimated cost: ${selectedRoute?.cost || "Not selected"}`,
+    `Total estimated lead time: ${selectedRoute?.totalLeadTime || "Not selected"}`,
+    `Delivery requirement: within ${deliveryRequirementDays} days`,
+    `Delivery status: ${selectedRoute ? getDeliveryStatus(selectedRoute).label : "Not selected"}`,
+    ...comparisonFacts,
+    `Ranked top 3 freight risks/constraints: ${activity.selectedRisks
+      .map((item) => riskFocusItems.find((risk) => risk.id === item)?.label)
+      .filter(Boolean)
+      .join("; ") || "Not selected"}`,
+    `Your Road Freight Strategy: ${strategy.title}`,
+    `Strategy explanation: ${strategy.explanation}`,
+    `Alignment check: ${strategy.alignment}`,
+    `Recommendation: ${recommendation}`,
   ].join("\n");
 
   const copySummary = async () => {
@@ -354,46 +377,39 @@ function App() {
     }
   };
 
-  if (!activity.started) {
-    return <Landing onStart={() => updateActivity({ started: true, step: 1 })} />;
-  }
-
   return (
     <main className="app-shell">
-      <Header onHome={() => updateActivity({ started: false })} />
+      <Header onHome={() => goToStep(1)} />
       <section className="workspace" aria-live="polite">
         <Progress step={activity.step} />
-        {activity.step === 1 && <RouteOverview onNext={() => goToStep(2)} />}
+        {activity.step === 1 && <ScenarioIntro onNext={() => goToStep(2)} />}
         {activity.step === 2 && (
-          <Constraints
-            ratings={activity.ratings}
-            setRatings={(ratings) => updateActivity({ ratings })}
-            onBack={() => goToStep(1)}
-            onNext={() => goToStep(3)}
-          />
+          <RouteOverview onBack={() => goToStep(1)} onNext={() => goToStep(3)} />
         )}
         {activity.step === 3 && (
-          <RiskRanking
-            selectedRisks={activity.selectedRisks}
-            setSelectedRisks={(selectedRisks) => updateActivity({ selectedRisks })}
+          <RouteSelection
+            routeId={activity.routeId}
+            setRouteId={(routeId) => updateActivity({ routeId })}
             onBack={() => goToStep(2)}
             onNext={() => goToStep(4)}
           />
         )}
         {activity.step === 4 && (
-          <Strategy
-            strategy={activity.strategy}
-            setStrategy={(strategy) => updateActivity({ strategy })}
+          <RiskRanking
+            selectedRisks={activity.selectedRisks}
+            setSelectedRisks={(selectedRisks) => updateActivity({ selectedRisks })}
             onBack={() => goToStep(3)}
             onNext={() => goToStep(5)}
           />
         )}
         {activity.step === 5 && (
           <Result
-            activity={activity}
-            result={result}
-            copyStatus={copyStatus}
+            selectedRoute={selectedRoute}
+            rankedRisks={activity.selectedRisks}
+            strategy={strategy}
+            recommendation={recommendation}
             summary={summary}
+            copyStatus={copyStatus}
             onCopy={copySummary}
             onBack={() => goToStep(4)}
             onRestart={restart}
@@ -404,79 +420,20 @@ function App() {
   );
 }
 
-function Landing({ onStart }) {
-  return (
-    <main className="landing">
-      <section className="hero">
-        <div className="hero-copy">
-          <p className="eyebrow">Senior Bachelor Logistics Management</p>
-          <h1>Road Freight Decision Lab</h1>
-          <p className="subtitle">Manama &rarr; Riyadh &rarr; Rotterdam Cold-Chain Challenge</p>
-          <p className="scenario">
-            A Bahrain-based logistics provider must move a refrigerated pharmaceutical shipment from
-            Manama to Riyadh by road, then prepare it for onward global distribution to Rotterdam,
-            Netherlands. Your team will manage cost, lead time, compliance, safety, technology/V2X,
-            and cold-chain risk across local, regional, and global contexts.
-          </p>
-          <button className="primary-button" onClick={onStart}>
-            Start Activity
-          </button>
-        </div>
-        <div className="hero-panel" aria-label="Cold-chain route summary">
-          <div className="route-card compact">
-            <span className="stage-pill">A</span>
-            <strong>Manama</strong>
-            <span>Bahrain documentation</span>
-          </div>
-          <div className="connector-line" />
-          <div className="route-card compact">
-            <span className="stage-pill">B</span>
-            <strong>King Fahd Causeway</strong>
-            <span>Cross-border control point</span>
-          </div>
-          <div className="connector-line" />
-          <div className="route-card compact">
-            <span className="stage-pill">C</span>
-            <strong>Rotterdam</strong>
-            <span>Global distribution planning</span>
-          </div>
-        </div>
-      </section>
-      <details className="lecturer-notes">
-        <summary>Lecturer Notes</summary>
-        <div>
-          <p>
-            This is a Problem-Based Learning activity. Students act as logistics managers making
-            evidence-based freight decisions under realistic cold-chain constraints.
-          </p>
-          <p>
-            The task supports Bloom's analysis, evaluation, and justification through constraint
-            rating, risk ranking, strategy selection, and professional reasoning.
-          </p>
-          <p>
-            The activity aligns with NQF Level 8 through applied judgement, decision-making, and
-            scenario-based evaluation in a cross-border logistics context.
-          </p>
-        </div>
-      </details>
-    </main>
-  );
-}
-
 function Header({ onHome }) {
   return (
     <header className="topbar">
       <button className="brand-button" onClick={onHome}>
         <Icon type="road" />
-        <span>Road Freight Decision Lab</span>
+        <span>Road Freight Route Management Simulator</span>
       </button>
-      <span className="context-tag">Cold-chain PBL</span>
+      <span className="context-tag">Road freight operations</span>
     </header>
   );
 }
 
 function Progress({ step }) {
-  const labels = ["Route", "Constraints", "Risks", "Strategy", "Result"];
+  const labels = ["Scenario", "Overview", "Select Route", "Rank Focus", "Results"];
   return (
     <div className="progress-wrap" aria-label={`Step ${step} of 5`}>
       <div className="progress-header">
@@ -496,117 +453,214 @@ function Progress({ step }) {
   );
 }
 
-function RouteOverview({ onNext }) {
+function ScenarioIntro({ onNext }) {
   return (
     <Screen
-      title="Route Overview"
-      intro="Read the movement as one connected decision: local dispatch quality affects regional clearance, and regional reliability affects global onward planning."
-      actions={<button className="primary-button" onClick={onNext}>Rate Constraints</button>}
+      title="Managing Road Freight in Local, Regional and Global Business Environments"
+      intro="Your role is to manage the road freight stages of a pharmaceutical shipment from Bahrain to the Netherlands. Although the shipment connects with sea or air internationally, your main responsibility is to plan the local, regional, and last-mile road freight operations."
+      actions={<button className="primary-button" onClick={onNext}>View Route Overview</button>}
     >
-      <div className="timeline" aria-label="Route stages">
-        {routeStages.map((stage) => (
-          <article className="stage-card" key={stage.marker}>
-            <span className="stage-pill">{stage.marker}</span>
-            <p className="stage-title">{stage.title}</p>
-            <h3>{stage.heading}</h3>
-            <p>{stage.detail}</p>
-          </article>
-        ))}
+      <div className="intro-grid">
+        <article className="requirement-card">
+          <span className="detail-label">Delivery requirement</span>
+          <strong>The shipment must arrive within 40 days.</strong>
+        </article>
+        <article className="requirement-card">
+          <span className="detail-label">Planning role</span>
+          <strong>Road freight operations planner</strong>
+          <p>Manage cost, lead time, compliance, safety, technology, temperature control, customs coordination, and final delivery reliability.</p>
+        </article>
       </div>
     </Screen>
   );
 }
 
-function Constraints({ ratings, setRatings, onBack, onNext }) {
-  const setRating = (id, value) => {
-    setRatings({ ...ratings, [id]: Number(value) });
-  };
-
+function RouteOverview({ onBack, onNext }) {
   return (
     <Screen
-      title="Constraint Rating"
-      intro="Rate how strongly each constraint should influence the shipment plan. A higher rating means the constraint deserves more managerial attention."
+      title="Route Overview"
+      intro="Road freight supports every option through first-mile, regional, and final-mile movement. Sea and air are international connector modes."
       actions={
         <>
           <button className="secondary-button" onClick={onBack}>Back</button>
-          <button className="primary-button" onClick={onNext}>Rank Risks</button>
+          <button className="primary-button" onClick={onNext}>Select Route Plan</button>
         </>
       }
     >
-      <div className="constraints-grid">
-        {constraintInfo.map((item) => (
-          <article className="constraint-card" key={item.id}>
-            <div className="constraint-heading">
-              <span className="icon-badge">
-                <Icon type={item.icon} />
-              </span>
-              <div>
-                <h3>{item.label}</h3>
-                <p>{item.help}</p>
-              </div>
-            </div>
-            <div className="rating-row">
-              <span>1</span>
-              <input
-                aria-label={`${item.label} rating`}
-                type="range"
-                min="1"
-                max="5"
-                value={ratings[item.id]}
-                onChange={(event) => setRating(item.id, event.target.value)}
-              />
-              <span>5</span>
-              <strong>{ratings[item.id]}</strong>
-            </div>
+      <div className="timeline" aria-label="Road freight movement stages">
+        {roadMovementStages.map((stage) => (
+          <article className={`stage-card ${stage.roadFocus ? "road-focus" : ""}`} key={stage.label}>
+            <span className="stage-pill">{stage.roadFocus ? "Road" : "Link"}</span>
+            <p className="stage-title">{stage.label}</p>
+            <h3>{stage.detail}</h3>
           </article>
         ))}
       </div>
+      <div className="route-map-grid">
+        {Object.values(routeOptions).map((route) => (
+          <RouteMapGroup route={route} key={route.id} />
+        ))}
+      </div>
+      <ComparisonStrip />
     </Screen>
+  );
+}
+
+function RouteMapGroup({ route }) {
+  return (
+    <article className="map-group">
+      <div className="route-option-header">
+        <h3>{route.name}</h3>
+        <StatusBadge route={route} />
+      </div>
+      <div className="stage-map-list">
+        {route.legs.map((leg, index) => (
+          <StageMap leg={leg} index={index + 1} key={`${route.id}-${leg.title}`} />
+        ))}
+      </div>
+    </article>
+  );
+}
+
+function StageMap({ leg, index }) {
+  return (
+    <article className={`stage-map-card ${leg.type}`}>
+      <div>
+        <p className="stage-title">Map {index}: {leg.context}</p>
+        <h4>{leg.from} → {leg.to}</h4>
+        <span className="detail-label">{leg.mode}</span>
+      </div>
+      <div className="static-map" aria-label={`${leg.from} to ${leg.to} by ${leg.mode}`}>
+        <span>{leg.from}</span>
+        <span className={`route-line ${leg.type}`} />
+        <span>{leg.to}</span>
+      </div>
+      <p>{leg.note}</p>
+    </article>
+  );
+}
+
+function RouteSelection({ routeId, setRouteId, onBack, onNext }) {
+  return (
+    <Screen
+      title="Select the road freight route plan that best supports the shipment objective."
+      intro="Choose one road freight support plan. Review cost, lead time, and the 40-day delivery requirement before continuing."
+      actions={
+        <>
+          <button className="secondary-button" onClick={onBack}>Back</button>
+          <button className="primary-button" onClick={onNext} disabled={!routeId}>
+            Rank Freight Focus
+          </button>
+        </>
+      }
+    >
+      <div className="route-comparison" aria-label="Route options">
+        {Object.values(routeOptions).map((route) => (
+          <RouteOptionCard
+            key={route.id}
+            route={route}
+            selected={routeId === route.id}
+            onSelect={() => setRouteId(route.id)}
+          />
+        ))}
+      </div>
+      <ComparisonStrip />
+      <p className="disclaimer">{disclaimer}</p>
+    </Screen>
+  );
+}
+
+function RouteOptionCard({ route, selected, onSelect }) {
+  return (
+    <article className={`route-option ${selected ? "selected" : ""}`}>
+      <div className="route-option-header">
+        <h3>{route.name}</h3>
+        <StatusBadge route={route} />
+      </div>
+      <ul className="route-summary-list">
+        {route.legs.map((leg) => (
+          <li key={leg.title}>{leg.from} → {leg.to} by {leg.mode.toLowerCase()}</li>
+        ))}
+      </ul>
+      <div className="route-metrics" aria-label={`${route.name} neutral data`}>
+        <div>
+          <span className="detail-label">Total cost</span>
+          <strong>{route.cost}</strong>
+        </div>
+        <div>
+          <span className="detail-label">Total lead time</span>
+          <strong>{route.totalLeadTime}</strong>
+        </div>
+        <div>
+          <span className="detail-label">Route profile</span>
+          <strong>{route.costTone}</strong>
+          <strong>{route.timeTone}</strong>
+        </div>
+      </div>
+      <button className="primary-button" type="button" onClick={onSelect}>
+        {selected ? "Selected Route" : "Select Route"}
+      </button>
+    </article>
+  );
+}
+
+function StatusBadge({ route }) {
+  const status = getDeliveryStatus(route);
+  return <span className={`status-badge ${status.meetsRequirement ? "meets" : "warning"}`}>{status.detail}</span>;
+}
+
+function ComparisonStrip() {
+  return (
+    <div className="comparison-strip" aria-label="Cost and lead time comparison">
+      {comparisonFacts.map((fact) => (
+        <span key={fact}>{fact}</span>
+      ))}
+    </div>
   );
 }
 
 function RiskRanking({ selectedRisks, setSelectedRisks, onBack, onNext }) {
-  const toggleRisk = (risk) => {
-    if (selectedRisks.includes(risk)) {
-      setSelectedRisks(selectedRisks.filter((item) => item !== risk));
+  const toggleRisk = (riskId) => {
+    if (selectedRisks.includes(riskId)) {
+      setSelectedRisks(selectedRisks.filter((item) => item !== riskId));
       return;
     }
 
     if (selectedRisks.length < 3) {
-      setSelectedRisks([...selectedRisks, risk]);
+      setSelectedRisks([...selectedRisks, riskId]);
     }
   };
 
   return (
     <Screen
-      title="Risk Ranking"
-      intro="Select the top three risks your group would escalate before dispatch. The order reflects your priority ranking."
+      title="Freight Risk Focus Ranking"
+      intro="Based on your selected route, rank the top 3 freight risks/constraints you need to focus on most."
       actions={
         <>
           <button className="secondary-button" onClick={onBack}>Back</button>
           <button className="primary-button" onClick={onNext} disabled={selectedRisks.length !== 3}>
-            Choose Strategy
+            View Results
           </button>
         </>
       }
     >
       <div className="risk-status">
         <strong>{selectedRisks.length}/3 selected</strong>
-        <span>{selectedRisks.length === 3 ? "Ready to continue" : "Select exactly three risks"}</span>
+        <span>{selectedRisks.length === 3 ? "Ready to continue" : "Select exactly three focus areas"}</span>
       </div>
       <div className="risk-list">
-        {risks.map((risk) => {
-          const index = selectedRisks.indexOf(risk);
+        {riskFocusItems.map((risk) => {
+          const index = selectedRisks.indexOf(risk.id);
           const selected = index !== -1;
           return (
             <button
               className={`risk-option ${selected ? "selected" : ""}`}
-              key={risk}
-              onClick={() => toggleRisk(risk)}
+              key={risk.id}
+              onClick={() => toggleRisk(risk.id)}
               type="button"
             >
               <span>{selected ? index + 1 : ""}</span>
-              {risk}
+              {risk.label}
             </button>
           );
         })}
@@ -615,45 +669,17 @@ function RiskRanking({ selectedRisks, setSelectedRisks, onBack, onNext }) {
   );
 }
 
-function Strategy({ strategy, setStrategy, onBack, onNext }) {
-  return (
-    <Screen
-      title="Strategy Selection"
-      intro="Choose the strategy your team can defend using the evidence from your constraint ratings and top risk ranking."
-      actions={
-        <>
-          <button className="secondary-button" onClick={onBack}>Back</button>
-          <button className="primary-button" onClick={onNext} disabled={!strategy}>
-            View Result
-          </button>
-        </>
-      }
-    >
-      <div className="strategy-grid">
-        {Object.entries(strategies).map(([id, item]) => (
-          <button
-            type="button"
-            className={`strategy-card ${strategy === id ? "selected" : ""}`}
-            key={id}
-            onClick={() => setStrategy(id)}
-          >
-            <span className="radio-dot" />
-            <strong>{item.label}</strong>
-            <span>{item.explanation}</span>
-          </button>
-        ))}
-      </div>
-    </Screen>
-  );
-}
-
-function Result({ activity, result, summary, copyStatus, onCopy, onBack, onRestart }) {
-  const strategyLabel = strategies[activity.strategy]?.label || "Not selected";
+function Result({ selectedRoute, rankedRisks, strategy, recommendation, summary, copyStatus, onCopy, onBack, onRestart }) {
+  const route = selectedRoute || routeOptions.sea;
+  const status = getDeliveryStatus(route);
+  const rankedLabels = rankedRisks
+    .map((riskId) => riskFocusItems.find((risk) => risk.id === riskId)?.label)
+    .filter(Boolean);
 
   return (
     <Screen
-      title="Decision Result"
-      intro="Use this summary as an exit-ticket prompt or as evidence for a short class discussion."
+      title="Results"
+      intro="Review how the selected road freight support plan, ranked focus areas, and delivery requirement connect."
       actions={
         <>
           <button className="secondary-button" onClick={onBack}>Back</button>
@@ -669,35 +695,59 @@ function Result({ activity, result, summary, copyStatus, onCopy, onBack, onResta
       }
     >
       <div className="result-layout">
-        <section className="score-panel">
-          <p>Logistics Decision Score</p>
-          <strong>{result.score}</strong>
-          <span>out of 100</span>
+        <section className={`score-panel ${status.meetsRequirement ? "meets-panel" : "warning-panel"}`}>
+          <p>Delivery requirement</p>
+          <strong>40</strong>
+          <span>days maximum</span>
+          <p>Selected route: {route.totalLeadTime}</p>
+          <span>{status.label}</span>
         </section>
         <section className="result-details">
           <div>
-            <span className="detail-label">Selected strategy</span>
-            <strong>{strategyLabel}</strong>
+            <span className="detail-label">Selected route plan</span>
+            <strong>{route.resultLabel}</strong>
           </div>
+          <div className="result-stat-grid">
+            <div>
+              <span className="detail-label">Total estimated cost</span>
+              <strong>{route.cost}</strong>
+            </div>
+            <div>
+              <span className="detail-label">Total estimated lead time</span>
+              <strong>{route.totalLeadTime}</strong>
+            </div>
+            <div>
+              <span className="detail-label">Delivery status</span>
+              <strong>{status.detail}</strong>
+            </div>
+          </div>
+          <ComparisonStrip />
           <div>
-            <span className="detail-label">Top three risks</span>
+            <span className="detail-label">Ranked top 3 freight risks/constraints</span>
             <ol className="risk-summary">
-              {activity.selectedRisks.map((risk) => (
+              {rankedLabels.map((risk) => (
                 <li key={risk}>{risk}</li>
               ))}
             </ol>
           </div>
+          <article className="strategy-result-card">
+            <span className="detail-label">Your Road Freight Strategy</span>
+            <h3>{strategy.title}</h3>
+            <p>{strategy.explanation}</p>
+            <p>{strategy.alignment}</p>
+          </article>
           <div>
-            <span className="detail-label">Feedback</span>
-            <p>{result.feedback}</p>
+            <span className="detail-label">Road freight management recommendation</span>
+            <p>{recommendation}</p>
           </div>
           <div>
-            <span className="detail-label">Suggested improvement</span>
-            <p>{result.improvement}</p>
+            <span className="detail-label">Final reflection question</span>
+            <p>How can road freight be managed effectively across local, regional, and global stages to ensure the pharmaceutical shipment reaches Cobeco Pharma safely, reliably, and cost-effectively?</p>
           </div>
           {copyStatus && <p className="copy-status">{copyStatus}</p>}
         </section>
       </div>
+      <p className="disclaimer">{disclaimer}</p>
       <textarea className="summary-box" value={summary} readOnly aria-label="Copyable result summary" />
     </Screen>
   );
